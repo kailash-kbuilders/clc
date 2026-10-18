@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../data.dart';
 import '../widgets.dart';
 
-/// Opens the buy flow for a course.
+/// Razorpay Key ID.
 ///
-/// This is where a real Razorpay checkout will be launched once a Razorpay
-/// key is added. For now it runs a demo checkout and unlocks the course
-/// locally, so the whole flow can be seen and tested.
+/// This is a PUBLISHABLE key — it is designed to be shipped inside the app,
+/// so it is safe to keep here. The matching Key Secret must NEVER be put in
+/// app code: it belongs only on a server that creates orders and verifies
+/// payment signatures.
+const String razorpayKeyId = 'rzp_test_TpQYP57hgNKH0k';
+
+/// Opens the buy flow for a course and, on a successful Razorpay payment,
+/// unlocks the course (saved on the device).
 Future<void> buyCourse(BuildContext context, Course c) async {
   final paid = await showModalBottomSheet<bool>(
     context: context,
@@ -28,13 +34,61 @@ class _PaymentSheet extends StatefulWidget {
 }
 
 class _PaymentSheetState extends State<_PaymentSheet> {
+  late final Razorpay _razorpay;
   bool _busy = false;
 
-  Future<void> _pay() async {
-    setState(() => _busy = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
+  @override
+  void initState() {
+    super.initState();
+    _razorpay = Razorpay();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _onSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _onError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _onWallet);
+  }
+
+  @override
+  void dispose() {
+    _razorpay.clear();
+    super.dispose();
+  }
+
+  void _onSuccess(PaymentSuccessResponse r) {
     if (!mounted) return;
     Navigator.of(context).pop(true);
+  }
+
+  void _onError(PaymentFailureResponse r) {
+    if (!mounted) return;
+    setState(() => _busy = false);
+    snack(context, 'Payment not completed. ${r.message ?? ''}'.trim());
+  }
+
+  void _onWallet(ExternalWalletResponse r) {
+    if (!mounted) return;
+    setState(() => _busy = false);
+    snack(context, 'Wallet selected: ${r.walletName ?? ''}');
+  }
+
+  void _pay() {
+    final c = widget.course;
+    setState(() => _busy = true);
+    final options = <String, dynamic>{
+      'key': razorpayKeyId,
+      'amount': c.price * 100, // rupees -> paise
+      'name': 'CLC Barmer',
+      'description': c.title,
+      'theme': {'color': '#14196B'},
+      'prefill': {
+        'contact': AppState.i.userPhone,
+        'name': AppState.i.userName,
+      },
+    };
+    try {
+      _razorpay.open(options);
+    } catch (_) {
+      setState(() => _busy = false);
+      snack(context, 'Could not open the payment window.');
+    }
   }
 
   @override
@@ -82,16 +136,20 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : const Icon(Icons.lock),
-              label: Text(_busy ? 'Processing...' : 'Pay ₹${c.price}'),
+              label: Text(_busy ? 'Opening...' : 'Pay ₹${c.price}'),
             ),
           ),
           const SizedBox(height: 10),
-          const Text('Demo checkout — connect Razorpay to collect real payments.',
-              textAlign: TextAlign.center, style: mS),
+          const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(Icons.verified_user, size: 14, color: kGreen),
+            SizedBox(width: 6),
+            Text('Secure payment via Razorpay', style: mS),
+          ]),
           SizedBox(
               width: double.infinity,
               child: TextButton(
-                  onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel'))),
+                  onPressed: _busy ? null : () => Navigator.of(context).pop(false),
+                  child: const Text('Cancel'))),
         ]),
       ),
     );
