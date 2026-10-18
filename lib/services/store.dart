@@ -45,6 +45,23 @@ class Store {
     await _p?.setStringList('results', v.map(jsonEncode).toList());
   }
 
+  // ── Purchased courses ──
+  static Set<String> readPurchased() => (_p?.getStringList('purchased') ?? const []).toSet();
+
+  static Future<void> savePurchased(Set<String> v) async {
+    await _p?.setStringList('purchased', v.toList());
+  }
+
+  // ── Student profile ──
+  static String get profileName => _p?.getString('name') ?? '';
+
+  static String get profileClass => _p?.getString('class') ?? '';
+
+  static Future<void> saveProfile(String name, String cls) async {
+    await _p?.setString('name', name);
+    await _p?.setString('class', cls);
+  }
+
   // ── Settings ──
   static bool get notifEnabled => _p?.getBool('notif') ?? true;
 

@@ -7,16 +7,17 @@ class Course {
   final Color color;
   final int lessons;
   final double progress;
-  final bool enrolled;
+  final bool free; // true = included free; only one course is free
+  final int price; // price in rupees (0 when free)
   const Course(this.id, this.title, this.desc, this.tag, this.icon, this.color,
-      this.lessons, this.progress, this.enrolled);
+      this.lessons, this.progress, this.free, this.price);
 }
 
 const courses = [
-  Course('c1', 'Navodaya Class 6 Foundation', 'Mental Ability, Mathematics and Language', 'FOUNDATION', Icons.psychology, Color(0xFF14196B), 24, .65, true),
-  Course('c2', 'Mental Ability Practice', 'Reasoning drills and pattern practice', 'PRACTICE', Icons.extension, Color(0xFF6A3BD6), 18, .30, true),
-  Course('c3', 'Sainik School Class 6 Preparation', 'Maths, English, Intelligence and GK', 'ENTRANCE PREP', Icons.military_tech, Color(0xFF2E7D32), 30, 0, false),
-  Course('c4', 'Class 9 Entrance Preparation', 'Maths, English, Science and Intelligence', 'CLASS 9', Icons.rocket_launch, Color(0xFFE65100), 28, 0, false),
+  Course('c1', 'Navodaya Class 6 Foundation', 'Mental Ability, Mathematics and Language', 'FREE', Icons.psychology, Color(0xFF14196B), 24, .65, true, 0),
+  Course('c2', 'Mental Ability Practice', 'Reasoning drills and pattern practice', 'PAID', Icons.extension, Color(0xFF6A3BD6), 18, 0, false, 499),
+  Course('c3', 'Sainik School Class 6 Preparation', 'Maths, English, Intelligence and GK', 'PAID', Icons.military_tech, Color(0xFF2E7D32), 30, 0, false, 699),
+  Course('c4', 'Class 9 Entrance Preparation', 'Maths, English, Science and Intelligence', 'PAID', Icons.rocket_launch, Color(0xFFE65100), 28, 0, false, 599),
 ];
 
 class Lesson {
@@ -133,8 +134,28 @@ class AppState extends ChangeNotifier {
   final Set<String> done = {};
   final Set<int> read = {};
   final List<TestResult> results = [];
+  final Set<String> purchased = {};
+
+  String userName = 'Student';
+  String userClass = '';
 
   int get unread => notices.length - read.length;
+
+  /// True if the course is free or has already been bought.
+  bool owns(Course c) => c.free || purchased.contains(c.id);
+
+  void buy(Course c) {
+    purchased.add(c.id);
+    Store.savePurchased(purchased);
+    notifyListeners();
+  }
+
+  void setProfile(String name, String cls) {
+    userName = name;
+    userClass = cls;
+    Store.saveProfile(name, cls);
+    notifyListeners();
+  }
 
   /// Loads saved data from the device. Call once after Store.init().
   void hydrate() {
@@ -151,6 +172,11 @@ class AppState extends ChangeNotifier {
             m['score'] as int,
             m['total'] as int,
           )));
+    purchased
+      ..clear()
+      ..addAll(Store.readPurchased());
+    userName = Store.profileName.isEmpty ? 'Student' : Store.profileName;
+    userClass = Store.profileClass;
     notifyListeners();
   }
 

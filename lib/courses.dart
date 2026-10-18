@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'data.dart';
 import 'widgets.dart';
 import 'tests.dart';
+import 'services/payment.dart';
 
 // ───────── My Courses ─────────
 class CoursesScreen extends StatefulWidget {
@@ -16,10 +17,15 @@ class _CoursesState extends State<CoursesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final list = courses
-        .where((c) => c.enrolled == _enrolled && c.title.toLowerCase().contains(_q.toLowerCase()))
-        .toList();
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    return ListenableBuilder(
+      listenable: AppState.i,
+      builder: (_, __) {
+        final list = courses
+            .where((c) =>
+                AppState.i.owns(c) == _enrolled &&
+                c.title.toLowerCase().contains(_q.toLowerCase()))
+            .toList();
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Padding(
           padding: EdgeInsets.fromLTRB(16, 16, 16, 4), child: Text('My Courses', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: kInk))),
       const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('Sample demo courses', style: mS)),
@@ -64,11 +70,18 @@ class _CoursesState extends State<CoursesScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 children: [
                   for (final c in list)
-                    CourseTile(c, onTap: () => push(context, CourseDetailScreen(course: c))),
+                    CourseTile(
+                      c,
+                      owned: AppState.i.owns(c),
+                      onTap: () => push(context, CourseDetailScreen(course: c)),
+                      onBuy: () => buyCourse(context, c),
+                    ),
                 ],
               ),
       ),
-    ]);
+        ]);
+      },
+    );
   }
 }
 
@@ -82,12 +95,24 @@ class CourseDetailScreen extends StatelessWidget {
     final c = course;
     return Scaffold(
       bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: c.color),
-              onPressed: () => push(context, LessonScreen(course: c, index: 2)),
-              child: const Text('Continue Learning')),
+        child: ListenableBuilder(
+          listenable: AppState.i,
+          builder: (_, __) {
+            final owned = AppState.i.owns(c);
+            return Padding(
+              padding: const EdgeInsets.all(12),
+              child: owned
+                  ? FilledButton(
+                      style: FilledButton.styleFrom(backgroundColor: c.color),
+                      onPressed: () => push(context, LessonScreen(course: c, index: 2)),
+                      child: const Text('Continue Learning'))
+                  : FilledButton.icon(
+                      style: FilledButton.styleFrom(backgroundColor: kOrange),
+                      onPressed: () => buyCourse(context, c),
+                      icon: const Icon(Icons.lock_open),
+                      label: Text('Buy for ₹${c.price}')),
+            );
+          },
         ),
       ),
       body: ListenableBuilder(

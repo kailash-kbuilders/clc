@@ -4,7 +4,6 @@ import 'widgets.dart';
 import 'courses.dart';
 import 'tests.dart';
 import 'more.dart';
-import 'services/store.dart';
 import 'services/notify.dart';
 
 Future<void> main() async {
@@ -40,9 +39,6 @@ class _SplashState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Notification setup runs after the first frame and can never block
-    // navigation away from the splash screen.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _setupNotifications());
     Future.delayed(const Duration(milliseconds: 2200), _goNext);
   }
 
@@ -52,19 +48,6 @@ class _SplashState extends State<SplashScreen> {
         transitionDuration: const Duration(milliseconds: 500),
         pageBuilder: (_, __, ___) => const LoginScreen(),
         transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child)));
-  }
-
-  /// On every app open: ask for notification permission, and if the user
-  /// has notifications enabled, show the welcome notification. Any problem
-  /// here is ignored — notifications are optional and never block startup.
-  Future<void> _setupNotifications() async {
-    try {
-      await Notify.init();
-      final granted = await Notify.requestPermission();
-      if (granted && Store.notifEnabled) {
-        await Notify.welcome();
-      }
-    } catch (_) {}
   }
 
   @override
@@ -196,7 +179,8 @@ class _LoginState extends State<LoginScreen> {
                   SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                          onPressed: _enter,
+                          onPressed: () => Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(builder: (_) => const ProfileSetupScreen())),
                           icon: const Icon(Icons.explore),
                           label: const Text('Explore App'))),
                 ]),
@@ -204,6 +188,67 @@ class _LoginState extends State<LoginScreen> {
             ),
           ]),
         ),
+      );
+}
+
+// ───────── Create account (Explore) ─────────
+class ProfileSetupScreen extends StatefulWidget {
+  const ProfileSetupScreen({super.key});
+  @override
+  State<ProfileSetupScreen> createState() => _ProfileSetupState();
+}
+
+class _ProfileSetupState extends State<ProfileSetupScreen> {
+  final _name = TextEditingController();
+  String _cls = 'Class 6';
+  static const _classes = ['Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'];
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  void _continue() {
+    final name = _name.text.trim();
+    if (name.isEmpty) {
+      snack(context, 'Please enter your name.');
+      return;
+    }
+    AppState.i.setProfile(name, _cls);
+    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const Shell()));
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Create your account')),
+        body: ListView(padding: const EdgeInsets.all(20), children: [
+          const Text('Tell us about you',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: kInk)),
+          const SizedBox(height: 4),
+          const Text('Saved on your phone only.', style: mS),
+          const SizedBox(height: 22),
+          TextField(
+            controller: _name,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(
+                labelText: 'Full name',
+                prefixIcon: const Icon(Icons.person_outline),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<String>(
+            value: _cls,
+            decoration: InputDecoration(
+                labelText: 'Class',
+                prefixIcon: const Icon(Icons.school_outlined),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
+            items: _classes.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+            onChanged: (v) => setState(() => _cls = v ?? _cls),
+          ),
+          const SizedBox(height: 24),
+          FilledButton(onPressed: _continue, child: const Text('Continue')),
+        ]),
       );
 }
 
@@ -216,6 +261,22 @@ class Shell extends StatefulWidget {
 
 class _ShellState extends State<Shell> {
   int _i = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Ask for notification permission only after the user reaches Home
+    // (i.e. after login / explore) — never on the splash or login screen.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _askNotifications());
+  }
+
+  Future<void> _askNotifications() async {
+    try {
+      await Notify.init();
+      await Notify.requestPermission();
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
         body: SafeArea(
@@ -283,11 +344,15 @@ class HomeScreen extends StatelessWidget {
         child: Row(children: [
           const Logo(size: 42),
           const SizedBox(width: 10),
-          const Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Good morning, Aarav!', maxLines: 1, overflow: TextOverflow.ellipsis, style: hS),
-            Text('Ready to learn something new?', style: mS),
-          ])),
+          Expanded(
+              child: ListenableBuilder(
+            listenable: AppState.i,
+            builder: (_, __) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Hi, ${AppState.i.userName}!',
+                  maxLines: 1, overflow: TextOverflow.ellipsis, style: hS),
+              const Text('Ready to learn something new?', style: mS),
+            ]),
+          )),
           ListenableBuilder(
             listenable: AppState.i,
             builder: (_, __) => IconButton(
@@ -311,11 +376,11 @@ class HomeScreen extends StatelessWidget {
       // ── Quick actions, up front like PW ──
       QuickActions(items: [
         QuickAction(Icons.school, 'My Courses', kNavy, () => go(1)),
-        QuickAction(Icons.quiz, 'Online Tests', const Color(0xFFE65100), () => go(2)),
-        QuickAction(Icons.description, 'Study Notes', kGreen, () => go(3)),
         QuickAction(Icons.bar_chart, 'Results', const Color(0xFF6A3BD6), () => push(context, const ResultsScreen())),
         QuickAction(Icons.campaign, 'Announcements', const Color(0xFFC62828), () => push(context, const NotificationsScreen())),
         QuickAction(Icons.help_outline, 'Ask a Question', const Color(0xFF00838F), () => push(context, const AskScreen())),
+        QuickAction(Icons.quiz, 'Online Tests', const Color(0xFFE65100), () => go(2)),
+        QuickAction(Icons.description, 'Study Notes', kGreen, () => go(3)),
       ]),
 
       BannerCarousel(items: banners, onCta: go),
@@ -359,7 +424,7 @@ class HomeScreen extends StatelessWidget {
       // Explore courses
       const SectionTitle('Explore Courses'),
       SizedBox(
-        height: 252,
+        height: 292,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.only(left: 16, right: 4),

@@ -175,7 +175,15 @@ class CourseCard extends StatelessWidget {
               Text(c.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kInk)),
               const SizedBox(height: 4),
               Text(c.desc, maxLines: 2, overflow: TextOverflow.ellipsis, style: mS),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
+              Row(children: [
+                Icon(c.free ? Icons.lock_open : Icons.sell_outlined,
+                    size: 14, color: c.free ? kGreen : kOrange),
+                const SizedBox(width: 4),
+                Text(c.free ? 'Free' : '₹${c.price}',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: c.free ? kGreen : kOrange)),
+              ]),
+              const SizedBox(height: 8),
               SizedBox(
                   width: double.infinity,
                   height: 36,
@@ -192,8 +200,11 @@ class CourseCard extends StatelessWidget {
 /// Full-width course tile (My Courses)
 class CourseTile extends StatelessWidget {
   final Course c;
+  final bool owned;
   final VoidCallback onTap;
-  const CourseTile(this.c, {super.key, required this.onTap});
+  final VoidCallback onBuy;
+  const CourseTile(this.c,
+      {super.key, required this.owned, required this.onTap, required this.onBuy});
   @override
   Widget build(BuildContext context) => Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -215,23 +226,36 @@ class CourseTile extends StatelessWidget {
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
-                    TagChip(c.enrolled ? 'ENROLLED' : 'SAMPLE', c.enrolled ? kGreen : kMuted),
+                    TagChip(owned ? 'ENROLLED' : 'PAID', owned ? kGreen : kOrange),
                   ]),
                   const SizedBox(height: 4),
                   Text(c.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: tS),
                   const SizedBox(height: 4),
                   Text('${c.lessons} lessons', style: mS),
-                  if (c.enrolled) ...[
+                  if (owned) ...[
                     const SizedBox(height: 6),
                     Row(children: [
                       Expanded(child: AppProgress(c.progress)),
                       const SizedBox(width: 8),
                       Text('${(c.progress * 100).round()}%', style: mS),
                     ]),
+                  ] else ...[
+                    const SizedBox(height: 6),
+                    Text('₹${c.price}',
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: kOrange)),
                   ],
                 ]),
               ),
-              const Icon(Icons.chevron_right, color: kMuted),
+              if (owned)
+                const Icon(Icons.chevron_right, color: kMuted)
+              else
+                FilledButton(
+                    style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 38),
+                        backgroundColor: kOrange,
+                        padding: const EdgeInsets.symmetric(horizontal: 16)),
+                    onPressed: onBuy,
+                    child: const Text('Buy', style: TextStyle(fontSize: 13))),
             ]),
           ),
         ),

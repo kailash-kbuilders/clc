@@ -168,26 +168,31 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListView(padding: const EdgeInsets.all(16), children: [
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(22),
-              gradient: const LinearGradient(colors: [kNavy, Color(0xFF3A42D4)])),
-          child: Row(children: [
-            const CircleAvatar(
-                radius: 32,
-                backgroundColor: Colors.white,
-                child: Text('A', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: kNavy))),
-            const SizedBox(width: 14),
-            const Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Aarav Sharma', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
-              SizedBox(height: 2),
-              Text('DEMO-001 • Class 6', style: TextStyle(color: Colors.white70)),
-              SizedBox(height: 6),
-              DemoChip(dark: true),
-            ])),
-          ]),
+        ListenableBuilder(
+          listenable: AppState.i,
+          builder: (_, __) => Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                gradient: const LinearGradient(colors: [kNavy, Color(0xFF3A42D4)])),
+            child: Row(children: [
+              CircleAvatar(
+                  radius: 32,
+                  backgroundColor: Colors.white,
+                  child: Text(
+                      AppState.i.userName.isEmpty ? 'S' : AppState.i.userName[0].toUpperCase(),
+                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: kNavy))),
+              const SizedBox(width: 14),
+              Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(AppState.i.userName,
+                    style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 2),
+                Text(AppState.i.userClass.isEmpty ? 'Class not set' : AppState.i.userClass,
+                    style: const TextStyle(color: Colors.white70)),
+              ])),
+            ]),
+          ),
         ),
         const SizedBox(height: 16),
         Container(
