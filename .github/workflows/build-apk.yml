@@ -4,8 +4,6 @@ on:
   push:
     branches: [main, master]
   workflow_dispatch:
-  release:
-    types: [published]
 
 permissions:
   contents: write
@@ -55,8 +53,8 @@ jobs:
           name: CLC-Barmer-APK
           path: CLC-Barmer.apk
 
+      # Runs on every build, so a single push produces the APK in a Release.
       - name: Publish APK to GitHub Release
-        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
