@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'data.dart';
 import 'widgets.dart';
-import 'main.dart' show LoginScreen;
+import 'main.dart' show AuthScreen;
 import 'services/store.dart';
 import 'services/notify.dart';
 
@@ -218,7 +218,7 @@ class ProfileScreen extends StatelessWidget {
         OutlinedButton.icon(
             style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
             onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const LoginScreen()), (r) => false),
+                MaterialPageRoute(builder: (_) => const AuthScreen()), (r) => false),
             icon: const Icon(Icons.logout),
             label: const Text('Logout')),
       ]);

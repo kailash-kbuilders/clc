@@ -47,7 +47,7 @@ class _SplashState extends State<SplashScreen> {
     if (!mounted) return;
     Navigator.of(context).pushReplacement(PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 500),
-        pageBuilder: (_, __, ___) => const LoginScreen(),
+        pageBuilder: (_, __, ___) => const AuthScreen(),
         transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child)));
   }
 
@@ -82,27 +82,56 @@ class _SplashState extends State<SplashScreen> {
       );
 }
 
-// ───────── Login ─────────
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+// ───────── Login / Signup (mobile + OTP, one flow) ─────────
+class AuthScreen extends StatefulWidget {
+  const AuthScreen({super.key});
   @override
-  State<LoginScreen> createState() => _LoginState();
+  State<AuthScreen> createState() => _AuthState();
 }
 
-class _LoginState extends State<LoginScreen> {
-  final _key = GlobalKey<FormState>();
+class _AuthState extends State<AuthScreen> {
   final _phone = TextEditingController();
-  final _pass = TextEditingController();
-  bool _hide = true;
+  final _otp = TextEditingController();
+  bool _otpSent = false;
+  bool _busy = false;
 
-  void _enter() => Navigator.of(context)
-      .pushReplacement(MaterialPageRoute(builder: (_) => const Shell()));
+  // Demo OTP — a real OTP needs an SMS gateway (see the note in the app).
+  static const _demoOtp = '123456';
 
   @override
   void dispose() {
     _phone.dispose();
-    _pass.dispose();
+    _otp.dispose();
     super.dispose();
+  }
+
+  void _sendOtp() {
+    if (!RegExp(r'^[6-9]\d{9}$').hasMatch(_phone.text.trim())) {
+      snack(context, 'Enter a valid 10-digit mobile number.');
+      return;
+    }
+    FocusScope.of(context).unfocus();
+    setState(() => _otpSent = true);
+    snack(context, 'Demo OTP sent: $_demoOtp');
+  }
+
+  Future<void> _verify() async {
+    if (_otp.text.trim() != _demoOtp) {
+      snack(context, 'Incorrect OTP. In this demo use $_demoOtp.');
+      return;
+    }
+    setState(() => _busy = true);
+    AppState.i.setPhone(_phone.text.trim());
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (!mounted) return;
+    // Existing account on this phone -> straight to Home with saved data.
+    // New account -> ask name and class first.
+    if (Store.hasProfile) {
+      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const Shell()));
+    } else {
+      Navigator.of(context)
+          .pushReplacement(MaterialPageRoute(builder: (_) => const ProfileSetupScreen()));
+    }
   }
 
   @override
@@ -128,71 +157,60 @@ class _LoginState extends State<LoginScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 4),
-                Text('Your learning journey starts here.',
+                Text(_otpSent ? 'Enter the OTP to continue' : 'Login or create your account',
                     style: TextStyle(color: Colors.white.withOpacity(.85))),
               ]),
             ),
             Padding(
               padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _key,
-                child: Column(children: [
-                  TextFormField(
-                    controller: _phone,
-                    keyboardType: TextInputType.phone,
-                    maxLength: 10,
-                    decoration: InputDecoration(
-                        labelText: 'Mobile number',
-                        counterText: '',
-                        prefixIcon: const Icon(Icons.phone_android),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
-                    validator: (v) => RegExp(r'^[6-9]\d{9}$').hasMatch(v ?? '')
-                        ? null
-                        : 'Enter a valid 10-digit mobile number',
-                  ),
+              child: Column(children: [
+                TextField(
+                  controller: _phone,
+                  enabled: !_otpSent,
+                  keyboardType: TextInputType.phone,
+                  maxLength: 10,
+                  decoration: InputDecoration(
+                      labelText: 'Mobile number',
+                      counterText: '',
+                      prefixIcon: const Icon(Icons.phone_android),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
+                ),
+                if (_otpSent) ...[
                   const SizedBox(height: 14),
-                  TextFormField(
-                    controller: _pass,
-                    obscureText: _hide,
+                  TextField(
+                    controller: _otp,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
                     decoration: InputDecoration(
-                        labelText: 'Password',
+                        labelText: 'OTP',
+                        counterText: '',
                         prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                            icon: Icon(_hide ? Icons.visibility : Icons.visibility_off),
-                            onPressed: () => setState(() => _hide = !_hide)),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14))),
-                    validator: (v) =>
-                        (v ?? '').length >= 6 ? null : 'Password must be at least 6 characters',
                   ),
-                  Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                          onPressed: () => snack(context, 'Demo only — password reset is simulated.'),
-                          child: const Text('Forgot password?'))),
-                  SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                          onPressed: () {
-                            if (_key.currentState!.validate()) _enter();
-                          },
-                          child: const Text('Login'))),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                          onPressed: () => Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(builder: (_) => const ProfileSetupScreen())),
-                          icon: const Icon(Icons.explore),
-                          label: const Text('Explore App'))),
-                ]),
-              ),
+                  const SizedBox(height: 6),
+                  Text('Demo OTP: $_demoOtp  •  SMS gateway not connected yet', style: mS),
+                ],
+                const SizedBox(height: 18),
+                SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                        onPressed: _busy ? null : (_otpSent ? _verify : _sendOtp),
+                        child: Text(_otpSent ? 'Verify & Continue' : 'Send OTP'))),
+                if (_otpSent)
+                  TextButton(
+                      onPressed: _busy ? null : () => setState(() => _otpSent = false),
+                      child: const Text('Change number')),
+                const SizedBox(height: 10),
+                const Text('New here? Same flow — continue and we will ask your name and class.',
+                    textAlign: TextAlign.center, style: mS),
+              ]),
             ),
           ]),
         ),
       );
 }
 
-// ───────── Create account (Explore) ─────────
+// ───────── New account: name + class ─────────
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
   @override
@@ -202,7 +220,7 @@ class ProfileSetupScreen extends StatefulWidget {
 class _ProfileSetupState extends State<ProfileSetupScreen> {
   final _name = TextEditingController();
   String _cls = 'Class 6';
-  static const _classes = ['Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'];
+  static const _classes = ['Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'];
 
   @override
   void dispose() {
@@ -272,9 +290,14 @@ class _ShellState extends State<Shell> {
   }
 
   Future<void> _askNotifications() async {
+    // Only the very first time the user reaches Home: ask permission and
+    // show one welcome notification. Never again after that.
+    if (Store.notifAsked) return;
     try {
       await Notify.init();
-      await Notify.requestPermission();
+      final granted = await Notify.requestPermission();
+      if (granted) await Notify.welcome();
+      await Store.setNotifAsked(true);
     } catch (_) {}
   }
 

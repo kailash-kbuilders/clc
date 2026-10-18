@@ -138,6 +138,7 @@ class AppState extends ChangeNotifier {
 
   String userName = 'Student';
   String userClass = '';
+  String userPhone = '';
 
   int get unread => notices.length - read.length;
 
@@ -154,6 +155,12 @@ class AppState extends ChangeNotifier {
     userName = name;
     userClass = cls;
     Store.saveProfile(name, cls);
+    notifyListeners();
+  }
+
+  void setPhone(String p) {
+    userPhone = p;
+    Store.setPhone(p);
     notifyListeners();
   }
 
@@ -177,6 +184,7 @@ class AppState extends ChangeNotifier {
       ..addAll(Store.readPurchased());
     userName = Store.profileName.isEmpty ? 'Student' : Store.profileName;
     userClass = Store.profileClass;
+    userPhone = Store.phone;
     notifyListeners();
   }
 

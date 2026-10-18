@@ -62,6 +62,22 @@ class Store {
     await _p?.setString('class', cls);
   }
 
+  static String get phone => _p?.getString('phone') ?? '';
+
+  static Future<void> setPhone(String v) async {
+    await _p?.setString('phone', v);
+  }
+
+  /// True once the student has set a name (i.e. finished sign-up).
+  static bool get hasProfile => (_p?.getString('name') ?? '').isNotEmpty;
+
+  // ── One-time notification prompt ──
+  static bool get notifAsked => _p?.getBool('notifAsked') ?? false;
+
+  static Future<void> setNotifAsked(bool v) async {
+    await _p?.setBool('notifAsked', v);
+  }
+
   // ── Settings ──
   static bool get notifEnabled => _p?.getBool('notif') ?? true;
 

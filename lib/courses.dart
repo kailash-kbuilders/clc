@@ -156,6 +156,21 @@ class CourseDetailScreen extends StatelessWidget {
               ]),
             ]),
           ),
+          if (!AppState.i.owns(c))
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                  color: kOrange.withOpacity(.15), borderRadius: BorderRadius.circular(12)),
+              child: const Row(children: [
+                Icon(Icons.lock, color: Color(0xFF9A5B00)),
+                SizedBox(width: 10),
+                Expanded(
+                    child: Text('Buy this course to unlock all modules and lessons.',
+                        style: TextStyle(
+                            fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF9A5B00)))),
+              ]),
+            ),
           const SectionTitle('Overview'),
           Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -171,7 +186,7 @@ class CourseDetailScreen extends StatelessWidget {
               child: ExpansionTile(
                 shape: const Border(),
                 collapsedShape: const Border(),
-                initiallyExpanded: e.key == 'Mental Ability',
+                initiallyExpanded: false,
                 title: Text(e.key, style: tS),
                 subtitle: Text('${e.value.length} items', style: mS),
                 children: [
@@ -181,12 +196,20 @@ class CourseDetailScreen extends StatelessWidget {
                       leading: Icon(lessonIcon(l.type), color: lessonColor(l.type)),
                       title: Text(l.title, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
                       subtitle: Text(l.dur, style: mS),
-                      trailing: AppState.i.done.contains(l.id)
-                          ? const Icon(Icons.check_circle, color: kGreen)
-                          : const Icon(Icons.chevron_right, color: kMuted),
-                      onTap: () => l.type == 'test'
-                          ? push(context, TestInstructionsScreen(t: tests[1]))
-                          : push(context, LessonScreen(course: c, index: allLessons.indexOf(l))),
+                      trailing: !AppState.i.owns(c)
+                          ? const Icon(Icons.lock, color: kMuted, size: 18)
+                          : (AppState.i.done.contains(l.id)
+                              ? const Icon(Icons.check_circle, color: kGreen)
+                              : const Icon(Icons.chevron_right, color: kMuted)),
+                      onTap: () {
+                        if (!AppState.i.owns(c)) {
+                          buyCourse(context, c);
+                        } else if (l.type == 'test') {
+                          push(context, TestInstructionsScreen(t: tests[1]));
+                        } else {
+                          push(context, LessonScreen(course: c, index: allLessons.indexOf(l)));
+                        }
+                      },
                     ),
                 ],
               ),
@@ -202,7 +225,9 @@ class CourseDetailScreen extends StatelessWidget {
                   title: Text(t.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
                   subtitle: Text('${t.q} questions • ${t.mins} min • Sample test', style: mS),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => push(context, TestInstructionsScreen(t: t)),
+                  onTap: () => AppState.i.owns(c)
+                      ? push(context, TestInstructionsScreen(t: t))
+                      : buyCourse(context, c),
                 ),
             ]),
           ),
