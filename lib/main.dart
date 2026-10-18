@@ -10,10 +10,11 @@ import 'services/notify.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Local storage first, so saved progress/settings are ready before the UI.
-  await Store.init();
-  AppState.i.hydrate();
-  // Set up local notifications.
-  await Notify.init();
+  // Wrapped so a storage problem can never stop the app from launching.
+  try {
+    await Store.init();
+    AppState.i.hydrate();
+  } catch (_) {}
   runApp(const ClcApp());
 }
 
@@ -39,23 +40,31 @@ class _SplashState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _boot();
-    Future.delayed(const Duration(milliseconds: 2200), () {
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 500),
-          pageBuilder: (_, __, ___) => const LoginScreen(),
-          transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child)));
-    });
+    // Notification setup runs after the first frame and can never block
+    // navigation away from the splash screen.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _setupNotifications());
+    Future.delayed(const Duration(milliseconds: 2200), _goNext);
+  }
+
+  void _goNext() {
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 500),
+        pageBuilder: (_, __, ___) => const LoginScreen(),
+        transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child)));
   }
 
   /// On every app open: ask for notification permission, and if the user
-  /// has notifications enabled, show the welcome notification.
-  Future<void> _boot() async {
-    final granted = await Notify.requestPermission();
-    if (granted && Store.notifEnabled) {
-      await Notify.welcome();
-    }
+  /// has notifications enabled, show the welcome notification. Any problem
+  /// here is ignored — notifications are optional and never block startup.
+  Future<void> _setupNotifications() async {
+    try {
+      await Notify.init();
+      final granted = await Notify.requestPermission();
+      if (granted && Store.notifEnabled) {
+        await Notify.welcome();
+      }
+    } catch (_) {}
   }
 
   @override
