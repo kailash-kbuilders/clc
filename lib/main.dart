@@ -4,6 +4,7 @@ import 'widgets.dart';
 import 'courses.dart';
 import 'tests.dart';
 import 'more.dart';
+import 'services/store.dart';
 import 'services/notify.dart';
 
 Future<void> main() async {
