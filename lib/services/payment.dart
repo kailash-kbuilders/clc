@@ -101,16 +101,14 @@ class _PaymentSheetState extends State<_PaymentSheet> {
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(color: c.color.withOpacity(.12), borderRadius: BorderRadius.circular(14)),
-                child: Icon(c.icon, color: c.color, size: 28)),
+            ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.asset(c.image, width: 52, height: 52, fit: BoxFit.cover)),
             const SizedBox(width: 12),
             Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(c.title, style: tS),
-              Text('${c.lessons} lessons • lifetime access', style: mS),
+              Text('${classCount(c)} classes • lifetime access', style: mS),
             ])),
           ]),
           const SizedBox(height: 18),
