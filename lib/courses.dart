@@ -384,11 +384,9 @@ class _ClassPlayerState extends State<ClassPlayerScreen> {
   void initState() {
     super.initState();
     if (_isYoutube) {
-      final id = YoutubePlayer.convertUrlToId(widget.item.youtube) ?? widget.item.youtube;
-      _yt = YoutubePlayerController(
-        initialVideoId: id,
-        flags: const YoutubePlayerFlags(autoPlay: false),
-      );
+      final id = YoutubePlayerController.convertUrlToId(widget.item.youtube) ??
+          widget.item.youtube;
+      _yt = YoutubePlayerController.fromVideoId(videoId: id, autoPlay: false);
       _ready = true;
     } else {
       final c = VideoPlayerController.asset(sampleVideo);
@@ -406,7 +404,6 @@ class _ClassPlayerState extends State<ClassPlayerScreen> {
   @override
   void dispose() {
     _vc?.dispose();
-    _yt?.dispose();
     super.dispose();
   }
 
@@ -437,8 +434,7 @@ class _ClassPlayerState extends State<ClassPlayerScreen> {
                 child: _isYoutube
                     ? YoutubePlayer(
                         controller: _yt!,
-                        showVideoProgressIndicator: true,
-                        progressIndicatorColor: kOrange,
+                        aspectRatio: 16 / 9,
                       )
                     : AspectRatio(
                         aspectRatio: (_ready && _vc != null) ? _vc!.value.aspectRatio : 16 / 9,
@@ -468,7 +464,7 @@ class _ClassPlayerState extends State<ClassPlayerScreen> {
                           .clamp(0, v.duration.inMilliseconds)
                           .toDouble(),
                       max: v.duration.inMilliseconds.toDouble().clamp(1, double.infinity),
-                      onChanged: (x) => _vc.seekTo(Duration(milliseconds: x.round())),
+                      onChanged: (x) => _vc!.seekTo(Duration(milliseconds: x.round())),
                     ),
                   ),
                   Text(_fmt(v.duration), style: mS),
