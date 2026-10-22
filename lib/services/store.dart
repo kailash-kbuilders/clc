@@ -71,6 +71,13 @@ class Store {
   /// True once the student has set a name (i.e. finished sign-up).
   static bool get hasProfile => (_p?.getString('name') ?? '').isNotEmpty;
 
+  // ── Session (so the user stays logged in) ──
+  static bool get isLoggedIn => _p?.getBool('loggedIn') ?? false;
+
+  static Future<void> setLoggedIn(bool v) async {
+    await _p?.setBool('loggedIn', v);
+  }
+
   // ── One-time notification prompt ──
   static bool get notifAsked => _p?.getBool('notifAsked') ?? false;
 

@@ -217,8 +217,11 @@ class ProfileScreen extends StatelessWidget {
         const SizedBox(height: 16),
         OutlinedButton.icon(
             style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-            onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const AuthScreen()), (r) => false),
+            onPressed: () {
+              Store.setLoggedIn(false);
+              Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const AuthScreen()), (r) => false);
+            },
             icon: const Icon(Icons.logout),
             label: const Text('Logout')),
       ]);

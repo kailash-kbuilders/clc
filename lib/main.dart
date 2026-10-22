@@ -47,7 +47,8 @@ class _SplashState extends State<SplashScreen> {
     if (!mounted) return;
     Navigator.of(context).pushReplacement(PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 500),
-        pageBuilder: (_, __, ___) => const AuthScreen(),
+        // Already logged in -> straight to Home, no login every time.
+        pageBuilder: (_, __, ___) => Store.isLoggedIn ? const Shell() : const AuthScreen(),
         transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child)));
   }
 
@@ -122,6 +123,7 @@ class _AuthState extends State<AuthScreen> {
     }
     setState(() => _busy = true);
     AppState.i.setPhone(_phone.text.trim());
+    await Store.setLoggedIn(true);
     await Future.delayed(const Duration(milliseconds: 400));
     if (!mounted) return;
     // Existing account on this phone -> straight to Home with saved data.
