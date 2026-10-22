@@ -413,38 +413,47 @@ class HomeScreen extends StatelessWidget {
 
       // Continue learning
       const SectionTitle('Continue Learning'),
-      Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        padding: const EdgeInsets.all(16),
-        decoration: cardDeco(),
-        child: Column(children: [
-          Row(children: [
-            Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(color: kNavy.withOpacity(.08), borderRadius: BorderRadius.circular(14)),
-                child: const Icon(Icons.psychology, color: kNavy, size: 28)),
-            const SizedBox(width: 12),
-            const Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Navodaya Class 6 Foundation', style: mS),
-              SizedBox(height: 2),
-              Text('Introduction to Mental Ability', style: tS),
-            ])),
-          ]),
-          const SizedBox(height: 14),
-          Row(children: [
-            const Expanded(child: AppProgress(.65)),
-            const SizedBox(width: 10),
-            const Text('65%', style: tS),
-          ]),
-          const SizedBox(height: 10),
-          SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                  onPressed: () => push(context, LessonScreen(course: courses[0], index: 2)),
-                  child: const Text('Continue Learning'))),
-        ]),
+      ListenableBuilder(
+        listenable: AppState.i,
+        builder: (_, __) {
+          final c = courses[0];
+          final s = c.subjects.first;
+          final t = s.topics.first;
+          final k = t.classes.first;
+          final p = AppState.i.progressOf(c);
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.all(16),
+            decoration: cardDeco(),
+            child: Column(children: [
+              Row(children: [
+                ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Image.asset(c.image, width: 56, height: 56, fit: BoxFit.cover)),
+                const SizedBox(width: 12),
+                Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(c.title, style: mS),
+                  const SizedBox(height: 2),
+                  Text(t.title, style: tS),
+                ])),
+              ]),
+              const SizedBox(height: 14),
+              Row(children: [
+                Expanded(child: AppProgress(p)),
+                const SizedBox(width: 10),
+                Text('${(p * 100).round()}%', style: tS),
+              ]),
+              const SizedBox(height: 10),
+              SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                      onPressed: () => push(context,
+                          ClassPlayerScreen(course: c, subject: s, topic: t, item: k)),
+                      child: const Text('Continue Learning'))),
+            ]),
+          );
+        },
       ),
 
       // Explore courses

@@ -51,12 +51,6 @@ void snack(BuildContext c, String m) {
     ..showSnackBar(SnackBar(content: Text(m), behavior: SnackBarBehavior.floating));
 }
 
-IconData lessonIcon(String t) => t == 'read'
-    ? Icons.article
-    : (t == 'pdf' ? Icons.picture_as_pdf : Icons.quiz);
-Color lessonColor(String t) =>
-    t == 'read' ? kNavy : (t == 'pdf' ? const Color(0xFFD84315) : kGreen);
-
 class Logo extends StatelessWidget {
   final double size;
   const Logo({super.key, this.size = 40});
@@ -74,25 +68,6 @@ class Logo extends StatelessWidget {
                 child: Text('CLC',
                     style: TextStyle(
                         color: Colors.white, fontWeight: FontWeight.w900, fontSize: size * .3)))),
-      );
-}
-
-class DemoChip extends StatelessWidget {
-  final bool dark;
-  const DemoChip({super.key, this.dark = false});
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-            color: dark ? Colors.white.withOpacity(.15) : kOrange.withOpacity(.15),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: kOrange)),
-        child: Text('DEMO APP',
-            style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                letterSpacing: .8,
-                color: dark ? kOrange : const Color(0xFF9A5B00))),
       );
 }
 
@@ -135,44 +110,38 @@ class TagChip extends StatelessWidget {
       );
 }
 
-/// Horizontal course card (Home)
+/// Horizontal course card (Home) — uses the course poster image.
 class CourseCard extends StatelessWidget {
   final Course c;
   final VoidCallback onTap;
   const CourseCard(this.c, {super.key, required this.onTap});
   @override
   Widget build(BuildContext context) => Container(
-        width: 220,
+        width: 230,
         margin: const EdgeInsets.only(right: 12, bottom: 6),
         decoration: cardDeco(),
         clipBehavior: Clip.antiAlias,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(
-            height: 92,
-            width: double.infinity,
-            decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [c.color, c.color.withOpacity(.65)])),
-            child: Stack(children: [
-              Positioned(
-                  right: -10,
-                  bottom: -14,
-                  child: Icon(c.icon, size: 86, color: Colors.white.withOpacity(.3))),
-              Positioned(
-                  left: 12,
-                  top: 12,
-                  child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                          color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                      child: Text(c.tag,
-                          style: TextStyle(
-                              fontSize: 9, fontWeight: FontWeight.w800, color: c.color)))),
-            ]),
-          ),
+          Stack(children: [
+            Image.asset(c.image, height: 104, width: double.infinity, fit: BoxFit.cover),
+            Positioned(
+                left: 10,
+                top: 10,
+                child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration:
+                        BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                    child: Text(c.tag,
+                        style: TextStyle(
+                            fontSize: 9, fontWeight: FontWeight.w800, color: c.color)))),
+          ]),
           Padding(
             padding: const EdgeInsets.all(12),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(c.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kInk)),
+              Text(c.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kInk)),
               const SizedBox(height: 4),
               Text(c.desc, maxLines: 2, overflow: TextOverflow.ellipsis, style: mS),
               const SizedBox(height: 8),
@@ -181,14 +150,16 @@ class CourseCard extends StatelessWidget {
                     size: 14, color: c.free ? kGreen : kOrange),
                 const SizedBox(width: 4),
                 Text(c.free ? 'Free' : '₹${c.price}',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: c.free ? kGreen : kOrange)),
+                    style: TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w800, color: c.free ? kGreen : kOrange)),
               ]),
               const SizedBox(height: 8),
               SizedBox(
                   width: double.infinity,
                   height: 36,
                   child: FilledButton(
-                      style: FilledButton.styleFrom(minimumSize: const Size(0, 36), backgroundColor: c.color),
+                      style: FilledButton.styleFrom(
+                          minimumSize: const Size(0, 36), backgroundColor: c.color),
                       onPressed: onTap,
                       child: const Text('View Course', style: TextStyle(fontSize: 13)))),
             ]),
@@ -197,7 +168,7 @@ class CourseCard extends StatelessWidget {
       );
 }
 
-/// Full-width course tile (My Courses)
+/// Full-width course tile (My Courses).
 class CourseTile extends StatelessWidget {
   final Course c;
   final bool owned;
@@ -215,13 +186,10 @@ class CourseTile extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(children: [
-              Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      gradient: LinearGradient(colors: [c.color, c.color.withOpacity(.6)])),
-                  child: Icon(c.icon, color: Colors.white, size: 34)),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.asset(c.image, width: 84, height: 84, fit: BoxFit.cover),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -231,18 +199,19 @@ class CourseTile extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(c.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: tS),
                   const SizedBox(height: 4),
-                  Text('${c.lessons} lessons', style: mS),
+                  Text('${classCount(c)} classes', style: mS),
                   if (owned) ...[
                     const SizedBox(height: 6),
                     Row(children: [
-                      Expanded(child: AppProgress(c.progress)),
+                      Expanded(child: AppProgress(AppState.i.progressOf(c))),
                       const SizedBox(width: 8),
-                      Text('${(c.progress * 100).round()}%', style: mS),
+                      Text('${(AppState.i.progressOf(c) * 100).round()}%', style: mS),
                     ]),
                   ] else ...[
                     const SizedBox(height: 6),
                     Text('₹${c.price}',
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: kOrange)),
+                        style: const TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w800, color: kOrange)),
                   ],
                 ]),
               ),
@@ -262,7 +231,7 @@ class CourseTile extends StatelessWidget {
       );
 }
 
-/// Reusable auto-sliding promotional carousel
+/// Auto-sliding poster carousel (real poster images).
 class BannerCarousel extends StatefulWidget {
   final List<PromoBanner> items;
   final void Function(int tab) onCta;
@@ -294,91 +263,41 @@ class _BannerCarouselState extends State<BannerCarousel> {
     super.dispose();
   }
 
-  Widget _circle(double s, double o) => Container(
-      width: s,
-      height: s,
-      decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(o)));
-
   Widget _card(PromoBanner b) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
         child: Container(
           decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              gradient: LinearGradient(
-                  begin: Alignment.topLeft, end: Alignment.bottomRight, colors: b.colors),
-              boxShadow: [
-                BoxShadow(
-                    color: b.colors.first.withOpacity(.35),
-                    blurRadius: 16,
-                    offset: const Offset(0, 8))
-              ]),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: Stack(children: [
-              Positioned(right: -40, top: -40, child: _circle(160, .08)),
-              Positioned(right: 50, bottom: -60, child: _circle(130, .07)),
-              Positioned(
-                  right: 18,
-                  bottom: 22,
-                  child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                          shape: BoxShape.circle, color: Colors.white.withOpacity(.18)),
-                      child: Icon(b.icon, size: 56, color: Colors.white))),
-              Positioned(
-                  right: 16,
-                  top: 14,
-                  child: Opacity(opacity: .95, child: const Logo(size: 30))),
-              Positioned.fill(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 16, 112, 16),
-                  child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(b.title,
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 19,
-                                height: 1.15,
-                                fontWeight: FontWeight.w800)),
-                        const SizedBox(height: 6),
-                        Text(b.sub,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: Colors.white.withOpacity(.9), fontSize: 12, height: 1.25)),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          height: 36,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: b.colors.first,
-                                elevation: 0,
-                                padding: const EdgeInsets.symmetric(horizontal: 14),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(18))),
-                            onPressed: () => widget.onCta(b.tab),
-                            child: Text(b.cta,
-                                style: const TextStyle(
-                                    fontSize: 12, fontWeight: FontWeight.w800)),
-                          ),
-                        ),
-                      ]),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 12, offset: Offset(0, 6))]),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(children: [
+            Positioned.fill(child: Image.asset(b.image, fit: BoxFit.cover)),
+            Positioned(
+              left: 14,
+              bottom: 12,
+              child: SizedBox(
+                height: 34,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: kNavy,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
+                  onPressed: () => widget.onCta(b.tab),
+                  child: Text(b.cta,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
                 ),
               ),
-            ]),
-          ),
+            ),
+          ]),
         ),
       );
 
   @override
   Widget build(BuildContext context) => Column(children: [
         SizedBox(
-          height: 196,
+          height: 168,
           child: Listener(
             onPointerDown: (_) => _hold = true,
             onPointerUp: (_) => _hold = false,
@@ -416,8 +335,7 @@ class QuickAction {
   const QuickAction(this.icon, this.label, this.color, this.onTap);
 }
 
-/// A prominent, horizontally scrollable row of circular quick-action
-/// buttons, placed near the top of the home screen.
+/// Prominent, horizontally scrollable row of circular quick-action buttons.
 class QuickActions extends StatelessWidget {
   final List<QuickAction> items;
   const QuickActions({super.key, required this.items});

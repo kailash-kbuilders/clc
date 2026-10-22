@@ -1,56 +1,171 @@
 import 'package:flutter/material.dart';
 import 'services/store.dart';
 
-class Course {
-  final String id, title, desc, tag;
+/// One live/recorded class inside a topic.
+class ClassItem {
+  final String title, dur;
+  const ClassItem(this.title, this.dur);
+}
+
+/// A topic (chapter) inside a subject.
+class Topic {
+  final String title, note;
+  final List<ClassItem> classes;
+  const Topic(this.title, this.note, this.classes);
+}
+
+/// A subject inside a course.
+class Subject {
+  final String title;
   final IconData icon;
   final Color color;
-  final int lessons;
-  final double progress;
-  final bool free; // true = included free; only one course is free
-  final int price; // price in rupees (0 when free)
-  const Course(this.id, this.title, this.desc, this.tag, this.icon, this.color,
-      this.lessons, this.progress, this.free, this.price);
+  final List<Topic> topics;
+  const Subject(this.title, this.icon, this.color, this.topics);
 }
+
+class Course {
+  final String id, title, desc, tag, image;
+  final Color color;
+  final bool free; // only one course is free
+  final int price; // rupees (0 when free)
+  final List<Subject> subjects;
+  const Course(this.id, this.title, this.desc, this.tag, this.image, this.color,
+      this.free, this.price, this.subjects);
+}
+
+/// Stable id for a class, used to remember what the student finished.
+String classId(Course c, Subject s, Topic t, ClassItem k) =>
+    '${c.id}|${s.title}|${t.title}|${k.title}';
+
+int classCount(Course c) =>
+    c.subjects.fold(0, (a, s) => a + s.topics.fold(0, (b, t) => b + t.classes.length));
+
+const _sampleVideo = 'assets/video/class_preview.mp4';
+String get sampleVideo => _sampleVideo;
 
 const courses = [
-  Course('c1', 'Navodaya Class 6 Foundation', 'Mental Ability, Mathematics and Language', 'FREE', Icons.psychology, Color(0xFF14196B), 24, .65, true, 0),
-  Course('c2', 'Mental Ability Practice', 'Reasoning drills and pattern practice', 'PAID', Icons.extension, Color(0xFF6A3BD6), 18, 0, false, 499),
-  Course('c3', 'Sainik School Class 6 Preparation', 'Maths, English, Intelligence and GK', 'PAID', Icons.military_tech, Color(0xFF2E7D32), 30, 0, false, 699),
-  Course('c4', 'Class 9 Entrance Preparation', 'Maths, English, Science and Intelligence', 'PAID', Icons.rocket_launch, Color(0xFFE65100), 28, 0, false, 599),
+  Course(
+    'c1',
+    'Navodaya Class 6 Foundation',
+    'Mental Ability, Mathematics and Language',
+    'FREE',
+    'assets/courses/c1.jpg',
+    Color(0xFF14196B),
+    true,
+    0,
+    [
+      Subject('Mental Ability', Icons.psychology, Color(0xFF6A3BD6), [
+        Topic('Series and Patterns', 'Find the rule and continue the series.', [
+          ClassItem('Introduction to Series', '10:00'),
+          ClassItem('Number Series Practice', '12:00'),
+          ClassItem('Letter Series', '09:00'),
+        ]),
+        Topic('Coding and Decoding', 'Letters and numbers ka code todna.', [
+          ClassItem('Basics of Coding', '11:00'),
+          ClassItem('Practice Set', '13:00'),
+        ]),
+      ]),
+      Subject('Mathematics', Icons.calculate, Color(0xFF14196B), [
+        Topic('Number System', 'Place value, operations and rounding.', [
+          ClassItem('Number System Basics', '14:00'),
+          ClassItem('Operations Practice', '12:00'),
+        ]),
+        Topic('Fractions and Decimals', 'Compare, add and simplify.', [
+          ClassItem('Introduction to Fractions', '10:00'),
+          ClassItem('Decimal Practice', '11:00'),
+        ]),
+      ]),
+      Subject('Language', Icons.menu_book, Color(0xFF1B7A3A), [
+        Topic('Grammar Essentials', 'Parts of speech and tenses.', [
+          ClassItem('Parts of Speech', '12:00'),
+          ClassItem('Tenses Made Easy', '11:00'),
+        ]),
+        Topic('Reading Practice', 'Passages and comprehension.', [
+          ClassItem('Passage Reading', '09:00'),
+        ]),
+      ]),
+    ],
+  ),
+  Course(
+    'c2',
+    'Mental Ability Practice',
+    'Reasoning drills and pattern practice',
+    'PAID',
+    'assets/courses/c2.jpg',
+    Color(0xFF6A3BD6),
+    false,
+    499,
+    [
+      Subject('Reasoning', Icons.extension, Color(0xFF6A3BD6), [
+        Topic('Series', 'Number and figure series.', [
+          ClassItem('Series Basics', '10:00'),
+          ClassItem('Advanced Series', '13:00'),
+        ]),
+        Topic('Analogy', 'Relation between pairs.', [
+          ClassItem('Analogy Introduction', '09:00'),
+        ]),
+        Topic('Odd One Out', 'Spot the different item.', [
+          ClassItem('Odd One Out Practice', '11:00'),
+        ]),
+      ]),
+    ],
+  ),
+  Course(
+    'c3',
+    'Sainik School Class 6 Preparation',
+    'Maths, English, Intelligence and GK',
+    'PAID',
+    'assets/courses/c3.jpg',
+    Color(0xFF2E7D32),
+    false,
+    699,
+    [
+      Subject('Mathematics', Icons.calculate, Color(0xFF2E7D32), [
+        Topic('Arithmetic', 'Core arithmetic for the entrance.', [
+          ClassItem('Arithmetic Basics', '14:00'),
+          ClassItem('Word Problems', '15:00'),
+        ]),
+      ]),
+      Subject('English', Icons.translate, Color(0xFF00838F), [
+        Topic('Grammar', 'Tenses, articles and prepositions.', [
+          ClassItem('Grammar Revision', '12:00'),
+        ]),
+      ]),
+      Subject('Intelligence', Icons.lightbulb, Color(0xFFE65100), [
+        Topic('Non-verbal Reasoning', 'Figures and patterns.', [
+          ClassItem('Figure Patterns', '11:00'),
+        ]),
+      ]),
+    ],
+  ),
+  Course(
+    'c4',
+    'Class 9 Entrance Preparation',
+    'Maths, English, Science and Intelligence',
+    'PAID',
+    'assets/courses/c4.jpg',
+    Color(0xFFE65100),
+    false,
+    599,
+    [
+      Subject('Mathematics', Icons.functions, Color(0xFFE65100), [
+        Topic('Algebra', 'Expressions and equations.', [
+          ClassItem('Algebra Basics', '15:00'),
+        ]),
+      ]),
+      Subject('Science', Icons.science, Color(0xFF1B7A3A), [
+        Topic('Physics Basics', 'Motion and force.', [
+          ClassItem('Motion Introduction', '13:00'),
+        ]),
+      ]),
+      Subject('English', Icons.menu_book, Color(0xFF14196B), [
+        Topic('Comprehension', 'Reading and writing skills.', [
+          ClassItem('Comprehension Practice', '12:00'),
+        ]),
+      ]),
+    ],
+  ),
 ];
-
-class Lesson {
-  final String id, title, type, dur;
-  const Lesson(this.id, this.title, this.type, this.dur);
-}
-
-const modules = {
-  'Introduction and Basics': [
-    Lesson('l1', 'Course Orientation', 'read', '6 min'),
-    Lesson('l2', 'How to Use This App', 'read', '4 min'),
-  ],
-  'Mental Ability': [
-    Lesson('l3', 'Introduction to Mental Ability', 'read', '12 min'),
-    Lesson('l4', 'Series and Patterns', 'read', '15 min'),
-    Lesson('l5', 'Mental Ability Notes', 'pdf', '8 pages'),
-  ],
-  'Mathematics': [
-    Lesson('l6', 'Number System Basics', 'read', '14 min'),
-    Lesson('l7', 'Number System Notes', 'pdf', '10 pages'),
-    Lesson('l8', 'Basics Practice Quiz', 'test', '10 Qs'),
-  ],
-  'Language Practice': [
-    Lesson('l9', 'Grammar Essentials', 'read', '11 min'),
-    Lesson('l10', 'Reading Practice', 'pdf', '6 pages'),
-  ],
-  'Revision and Mock Tests': [
-    Lesson('l11', 'Revision Summary', 'read', '9 min'),
-    Lesson('l12', 'Mock Test 01', 'test', '10 Qs'),
-  ],
-};
-
-final allLessons = [for (final m in modules.values) ...m];
 
 class Question {
   final String text;
@@ -107,17 +222,15 @@ const notices = [
 ];
 
 class PromoBanner {
-  final String title, sub, cta;
-  final List<Color> colors;
-  final IconData icon;
+  final String image, cta;
   final int tab;
-  const PromoBanner(this.title, this.sub, this.cta, this.colors, this.icon, this.tab);
+  const PromoBanner(this.image, this.cta, this.tab);
 }
 
 const banners = [
-  PromoBanner('Your Goal. Our Guidance.', 'Navodaya & Sainik style entrance preparation.', 'Explore Courses', [Color(0xFF14196B), Color(0xFF3A42D4)], Icons.emoji_events, 1),
-  PromoBanner('Practice Today. Improve Tomorrow.', 'Mock tests and practice sets to track growth.', 'Start Practice', [Color(0xFFE65100), Color(0xFFFFA726)], Icons.edit_note, 2),
-  PromoBanner('Build Strong Foundations.', 'Class 6 foundation preparation, step by step.', 'Explore Courses', [Color(0xFF1B7A3A), Color(0xFF55C26B)], Icons.auto_stories, 1),
+  PromoBanner('assets/banners/b1.jpg', 'Explore Courses', 1),
+  PromoBanner('assets/banners/b2.jpg', 'Start Practice', 2),
+  PromoBanner('assets/banners/b3.jpg', 'Explore Courses', 1),
 ];
 
 class TestResult {
@@ -126,8 +239,7 @@ class TestResult {
   const TestResult(this.title, this.score, this.total);
 }
 
-/// App-wide state. Everything here is persisted to the device so it
-/// survives closing and reopening the app.
+/// App-wide state, persisted on the device.
 class AppState extends ChangeNotifier {
   static final AppState i = AppState();
 
@@ -142,7 +254,6 @@ class AppState extends ChangeNotifier {
 
   int get unread => notices.length - read.length;
 
-  /// True if the course is free or has already been bought.
   bool owns(Course c) => c.free || purchased.contains(c.id);
 
   void buy(Course c) {
@@ -164,7 +275,20 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Loads saved data from the device. Call once after Store.init().
+  /// How far the student has got through a course (0..1).
+  double progressOf(Course c) {
+    final ids = <String>[];
+    for (final s in c.subjects) {
+      for (final t in s.topics) {
+        for (final k in t.classes) {
+          ids.add(classId(c, s, t, k));
+        }
+      }
+    }
+    if (ids.isEmpty) return 0;
+    return ids.where(done.contains).length / ids.length;
+  }
+
   void hydrate() {
     done
       ..clear()
