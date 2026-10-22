@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'data.dart';
 import 'widgets.dart';
-import 'tests.dart';
+import 'library.dart';
 import 'services/payment.dart';
 
 // ───────── My Courses ─────────
@@ -219,20 +220,20 @@ class CourseDetailScreen extends StatelessWidget {
                       : buyCourse(context, c),
                 ),
               ),
-            const SectionTitle('Practice Tests'),
+            const SectionTitle('Question Papers'),
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
               decoration: cardDeco(),
               child: Column(children: [
-                for (final t in tests)
+                for (final p in papers)
                   ListTile(
-                    leading: const Icon(Icons.quiz, color: kGreen),
-                    title: Text(t.title,
+                    leading: const Icon(Icons.description, color: kGreen),
+                    title: Text(p.title,
                         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                    subtitle: Text('${t.q} questions • ${t.mins} min', style: mS),
+                    subtitle: Text('${p.subject} • ${p.pages} pages', style: mS),
                     trailing: Icon(owned ? Icons.chevron_right : Icons.lock, color: kMuted),
                     onTap: () => owned
-                        ? push(context, TestInstructionsScreen(t: t))
+                        ? push(context, PaperScreen(paper: p))
                         : buyCourse(context, c),
                   ),
               ]),
@@ -370,32 +371,48 @@ class ClassPlayerScreen extends StatefulWidget {
 }
 
 class _ClassPlayerState extends State<ClassPlayerScreen> {
-  late final VideoPlayerController _vc;
+  VideoPlayerController? _vc;
+  YoutubePlayerController? _yt;
   bool _ready = false;
   double _speed = 1.0;
+
+  /// If the class has a YouTube URL, play it from YouTube; otherwise use the
+  /// bundled sample video.
+  bool get _isYoutube => widget.item.youtube.isNotEmpty;
 
   @override
   void initState() {
     super.initState();
-    _vc = VideoPlayerController.asset(sampleVideo);
-    _vc.initialize().then((_) {
-      if (!mounted) return;
-      setState(() => _ready = true);
-      _vc.play();
-    }).catchError((_) {
-      if (mounted) setState(() => _ready = false);
-    });
+    if (_isYoutube) {
+      final id = YoutubePlayer.convertUrlToId(widget.item.youtube) ?? widget.item.youtube;
+      _yt = YoutubePlayerController(
+        initialVideoId: id,
+        flags: const YoutubePlayerFlags(autoPlay: false),
+      );
+      _ready = true;
+    } else {
+      final c = VideoPlayerController.asset(sampleVideo);
+      _vc = c;
+      c.initialize().then((_) {
+        if (!mounted) return;
+        setState(() => _ready = true);
+        c.play();
+      }).catchError((_) {
+        if (mounted) setState(() => _ready = false);
+      });
+    }
   }
 
   @override
   void dispose() {
-    _vc.dispose();
+    _vc?.dispose();
+    _yt?.dispose();
     super.dispose();
   }
 
   void _setSpeed(double s) {
     setState(() => _speed = s);
-    _vc.setPlaybackSpeed(s);
+    _vc?.setPlaybackSpeed(s);
   }
 
   String _fmt(Duration d) =>
@@ -417,26 +434,32 @@ class _ClassPlayerState extends State<ClassPlayerScreen> {
               borderRadius: BorderRadius.circular(18),
               child: Container(
                 color: Colors.black,
-                child: AspectRatio(
-                  aspectRatio: _ready ? _vc.value.aspectRatio : 16 / 9,
-                  child: _ready
-                      ? Stack(alignment: Alignment.center, children: [
-                          VideoPlayer(_vc),
-                          _playOverlay(),
-                        ])
-                      : const Center(
-                          child: Padding(
-                          padding: EdgeInsets.all(24),
-                          child: Text('Loading class video...',
-                              style: TextStyle(color: Colors.white70)),
-                        )),
-                ),
+                child: _isYoutube
+                    ? YoutubePlayer(
+                        controller: _yt!,
+                        showVideoProgressIndicator: true,
+                        progressIndicatorColor: kOrange,
+                      )
+                    : AspectRatio(
+                        aspectRatio: (_ready && _vc != null) ? _vc!.value.aspectRatio : 16 / 9,
+                        child: (_ready && _vc != null)
+                            ? Stack(alignment: Alignment.center, children: [
+                                VideoPlayer(_vc!),
+                                _playOverlay(),
+                              ])
+                            : const Center(
+                                child: Padding(
+                                padding: EdgeInsets.all(24),
+                                child: Text('Loading class video...',
+                                    style: TextStyle(color: Colors.white70)),
+                              )),
+                      ),
               ),
             ),
-            if (_ready) ...[
+            if (_ready && !_isYoutube) ...[
               const SizedBox(height: 8),
               ValueListenableBuilder(
-                valueListenable: _vc,
+                valueListenable: _vc!,
                 builder: (_, v, __) => Row(children: [
                   Text(_fmt(v.position), style: mS),
                   Expanded(
@@ -489,11 +512,11 @@ class _ClassPlayerState extends State<ClassPlayerScreen> {
               padding: const EdgeInsets.all(14),
               decoration: cardDeco(),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Practice this topic with a short test.', style: mS),
+                const Text('Attempt the JNV Navodaya question paper.', style: mS),
                 const SizedBox(height: 8),
                 TextButton(
-                    onPressed: () => push(context, TestInstructionsScreen(t: tests[0])),
-                    child: const Text('Take a practice test')),
+                    onPressed: () => push(context, PaperScreen(paper: papers[0])),
+                    child: const Text('Open question paper')),
               ]),
             ),
           ]);
@@ -503,12 +526,12 @@ class _ClassPlayerState extends State<ClassPlayerScreen> {
   }
 
   Widget _playOverlay() => ValueListenableBuilder(
-        valueListenable: _vc,
+        valueListenable: _vc!,
         builder: (_, v, __) => AnimatedOpacity(
           duration: const Duration(milliseconds: 200),
           opacity: v.isPlaying ? 0 : 1,
           child: GestureDetector(
-            onTap: () => setState(() => v.isPlaying ? _vc.pause() : _vc.play()),
+            onTap: () => setState(() => v.isPlaying ? _vc!.pause() : _vc!.play()),
             child: Container(
               color: Colors.black38,
               alignment: Alignment.center,

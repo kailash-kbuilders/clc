@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'services/store.dart';
 
 /// One live/recorded class inside a topic.
+/// [youtube] is optional: if set, the class plays from YouTube instead of the
+/// bundled sample video.
 class ClassItem {
-  final String title, dur;
-  const ClassItem(this.title, this.dur);
+  final String title, dur, youtube;
+  const ClassItem(this.title, this.dur, [this.youtube = '']);
 }
 
 /// A topic (chapter) inside a subject.
@@ -167,36 +169,18 @@ const courses = [
   ),
 ];
 
-class Question {
-  final String text;
-  final List<String> opts;
-  final int ans;
-  const Question(this.text, this.opts, this.ans);
-}
-
-const questions = [
-  Question('Find the next number: 2, 4, 8, 16, ?', ['24', '30', '32', '36'], 2),
-  Question('Odd one out: Apple, Banana, Carrot, Mango', ['Apple', 'Banana', 'Carrot', 'Mango'], 2),
-  Question('What is 15 + 27?', ['32', '42', '52', '62'], 1),
-  Question('Find the next letter: A, C, E, G, ?', ['H', 'J', 'K', 'I'], 3),
-  Question('What is 9 × 8?', ['64', '72', '81', '76'], 1),
-  Question('What is 100 − 37?', ['53', '63', '73', '67'], 1),
-  Question('Which decimal is the largest?', ['0.5', '0.25', '0.75', '0.6'], 2),
-  Question('Opposite of "Hot" is…', ['Warm', 'Cold', 'Boil', 'Sun'], 1),
-  Question('How many sides does a hexagon have?', ['5', '6', '7', '8'], 1),
-  Question('Bird : Fly :: Fish : ?', ['Swim', 'Walk', 'Run', 'Jump'], 0),
-];
-
-class TestInfo {
+/// A real question paper shown in the Tests tab.
+class Paper {
   final String id, title, subject;
-  final int q, mins;
-  const TestInfo(this.id, this.title, this.subject, this.q, this.mins);
+  final int pages;
+  const Paper(this.id, this.title, this.subject, this.pages);
+
+  /// Asset path of page n (1-based).
+  String page(int n) => 'assets/paper/${id}_p${n.toString().padLeft(2, '0')}.jpg';
 }
 
-const tests = [
-  TestInfo('t1', 'Mental Ability', 'Reasoning', 10, 10),
-  TestInfo('t2', 'Mathematics Basics', 'Mathematics', 10, 15),
-  TestInfo('t3', 'Navodaya Mixed Practice', 'Mixed', 10, 20),
+const papers = [
+  Paper('jnv', 'JNV Navodaya Paper 2027 (Hindi Medium)', 'Navodaya / JNVST', 16),
 ];
 
 class Note {
@@ -239,6 +223,18 @@ class TestResult {
   const TestResult(this.title, this.score, this.total);
 }
 
+/// Downloadable resources shown in the Downloads screen.
+class Resource {
+  final String id, title, subtitle, asset;
+  final bool video;
+  const Resource(this.id, this.title, this.subtitle, this.asset, this.video);
+}
+
+const resources = [
+  Resource('video_demo', 'Sample class video', '10 sec • plays offline', 'assets/video/class_preview.mp4', true),
+  Resource('paper_jnv', 'JNV Navodaya Paper 2027', '16 pages • question paper', 'assets/paper/jnv_p01.jpg', false),
+];
+
 /// App-wide state, persisted on the device.
 class AppState extends ChangeNotifier {
   static final AppState i = AppState();
@@ -247,6 +243,7 @@ class AppState extends ChangeNotifier {
   final Set<int> read = {};
   final List<TestResult> results = [];
   final Set<String> purchased = {};
+  final Set<String> downloaded = {};
 
   String userName = 'Student';
   String userClass = '';
@@ -272,6 +269,14 @@ class AppState extends ChangeNotifier {
   void setPhone(String p) {
     userPhone = p;
     Store.setPhone(p);
+    notifyListeners();
+  }
+
+  bool isDownloaded(String id) => downloaded.contains(id);
+
+  void markDownloaded(String id, bool v) {
+    v ? downloaded.add(id) : downloaded.remove(id);
+    Store.saveDownloads(downloaded);
     notifyListeners();
   }
 
@@ -306,6 +311,9 @@ class AppState extends ChangeNotifier {
     purchased
       ..clear()
       ..addAll(Store.readPurchased());
+    downloaded
+      ..clear()
+      ..addAll(Store.readDownloads());
     userName = Store.profileName.isEmpty ? 'Student' : Store.profileName;
     userClass = Store.profileClass;
     userPhone = Store.phone;

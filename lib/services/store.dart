@@ -78,6 +78,13 @@ class Store {
     await _p?.setBool('loggedIn', v);
   }
 
+  // ── Downloads ──
+  static Set<String> readDownloads() => (_p?.getStringList('downloads') ?? const []).toSet();
+
+  static Future<void> saveDownloads(Set<String> v) async {
+    await _p?.setStringList('downloads', v.toList());
+  }
+
   // ── One-time notification prompt ──
   static bool get notifAsked => _p?.getBool('notifAsked') ?? false;
 

@@ -4,6 +4,7 @@ import 'widgets.dart';
 import 'courses.dart';
 import 'tests.dart';
 import 'more.dart';
+import 'library.dart';
 import 'services/store.dart';
 import 'services/notify.dart';
 
@@ -402,11 +403,9 @@ class HomeScreen extends StatelessWidget {
       // ── Quick actions, up front like PW ──
       QuickActions(items: [
         QuickAction(Icons.school, 'My Courses', kNavy, () => go(1)),
-        QuickAction(Icons.bar_chart, 'Results', const Color(0xFF6A3BD6), () => push(context, const ResultsScreen())),
-        QuickAction(Icons.campaign, 'Announcements', const Color(0xFFC62828), () => push(context, const NotificationsScreen())),
-        QuickAction(Icons.help_outline, 'Ask a Question', const Color(0xFF00838F), () => push(context, const AskScreen())),
         QuickAction(Icons.quiz, 'Online Tests', const Color(0xFFE65100), () => go(2)),
-        QuickAction(Icons.description, 'Study Notes', kGreen, () => go(3)),
+        QuickAction(Icons.download, 'Downloads', kGreen, () => push(context, const DownloadsScreen())),
+        QuickAction(Icons.help_outline, 'Ask a Question', const Color(0xFF00838F), () => push(context, const AskScreen())),
       ]),
 
       BannerCarousel(items: banners, onCta: go),
@@ -475,8 +474,8 @@ class HomeScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: IntrinsicHeight(
           child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            _practice('Daily Practice', 'Build your habit with short practice sessions.', Icons.local_fire_department,
-                const [Color(0xFFE65100), Color(0xFFFFA726)], () => push(context, TestInstructionsScreen(t: tests[0]))),
+            _practice('Question Paper', 'Attempt the latest JNV Navodaya paper.', Icons.local_fire_department,
+                const [Color(0xFFE65100), Color(0xFFFFA726)], () => push(context, PaperScreen(paper: papers[0]))),
             const SizedBox(width: 12),
             _practice('Mock Tests', 'Check your preparation with sample tests.', Icons.timer,
                 const [Color(0xFF14196B), Color(0xFF3A42D4)], () => go(2)),
