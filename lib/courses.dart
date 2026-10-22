@@ -381,6 +381,10 @@ class _ClassPlayerState extends State<ClassPlayerScreen> {
   /// bundled sample video.
   bool get _isYoutube => widget.item.youtube.isNotEmpty;
 
+  /// A direct video file link (your own storage) — plays online and can be
+  /// saved for offline watching.
+  bool get _isNetwork => !_isYoutube && widget.item.video.isNotEmpty;
+
   @override
   void initState() {
     super.initState();
@@ -389,6 +393,16 @@ class _ClassPlayerState extends State<ClassPlayerScreen> {
           widget.item.youtube;
       _yt = YoutubePlayerController.fromVideoId(videoId: id, autoPlay: false);
       _ready = true;
+    } else if (_isNetwork) {
+      final c = VideoPlayerController.networkUrl(Uri.parse(widget.item.video));
+      _vc = c;
+      c.initialize().then((_) {
+        if (!mounted) return;
+        setState(() => _ready = true);
+        c.play();
+      }).catchError((_) {
+        if (mounted) setState(() => _ready = false);
+      });
     } else {
       final c = VideoPlayerController.asset(sampleVideo);
       _vc = c;
@@ -411,6 +425,25 @@ class _ClassPlayerState extends State<ClassPlayerScreen> {
   void _setSpeed(double s) {
     setState(() => _speed = s);
     _vc?.setPlaybackSpeed(s);
+  }
+
+  bool _saving = false;
+
+  Future<void> _saveOffline() async {
+    setState(() => _saving = true);
+    try {
+      if (_isNetwork) {
+        await Downloads.saveFromUrl('video_demo', widget.item.video);
+      } else {
+        await Downloads.saveOne('video_demo', sampleVideo);
+      }
+      AppState.i.markDownloaded('video_demo', true);
+      if (mounted) snack(context, 'Saved for offline watching.');
+    } catch (_) {
+      if (mounted) snack(context, 'Download failed. Please check the link.');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   String _fmt(Duration d) =>
@@ -524,13 +557,9 @@ class _ClassPlayerState extends State<ClassPlayerScreen> {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () async {
-                    await Downloads.saveOne('video_demo', sampleVideo);
-                    AppState.i.markDownloaded('video_demo', true);
-                    if (context.mounted) snack(context, 'Saved for offline watching.');
-                  },
+                  onPressed: _saving ? null : _saveOffline,
                   icon: const Icon(Icons.download),
-                  label: const Text('Save offline'),
+                  label: Text(_saving ? 'Saving...' : 'Save offline'),
                 ),
               ),
             const SectionTitle('Practice'),

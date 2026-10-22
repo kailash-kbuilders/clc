@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
 /// Saves files into the app's own storage so they can be used offline.
@@ -36,6 +37,20 @@ class Downloads {
   /// Downloads one asset (video or single image).
   static Future<void> saveOne(String id, String assetPath) async {
     await _save(id, assetPath);
+  }
+
+  /// Downloads a video from a direct link (mp4 etc.) into app storage.
+  static Future<String> saveFromUrl(String id, String url) async {
+    final dir = await _dir();
+    final uri = Uri.parse(url);
+    final name = uri.pathSegments.isNotEmpty ? uri.pathSegments.last : 'class_$id.mp4';
+    final file = File('${dir.path}/${id}__$name');
+    final res = await http.get(uri);
+    if (res.statusCode != 200) {
+      throw Exception('Download failed (${res.statusCode})');
+    }
+    await file.writeAsBytes(res.bodyBytes);
+    return file.path;
   }
 
   /// Downloads every page of a paper.

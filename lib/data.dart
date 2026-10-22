@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'services/store.dart';
 import 'services/cloud.dart';
 
-/// One live/recorded class inside a topic.
-/// [youtube] is optional: if set, the class plays from YouTube instead of the
-/// bundled sample video.
+/// One recorded class inside a topic.
+///
+/// [youtube]  – a YouTube link  -> plays online only (YouTube videos cannot be
+///              downloaded inside an app).
+/// [video]    – a direct video file link (mp4, e.g. from your own storage)
+///              -> plays online AND can be saved for offline watching.
+/// If both are empty, the bundled sample video is used.
 class ClassItem {
-  final String title, dur, youtube;
-  const ClassItem(this.title, this.dur, [this.youtube = '']);
+  final String title, dur, youtube, video;
+  const ClassItem(this.title, this.dur, [this.youtube = '', this.video = '']);
 }
 
 /// A topic (chapter) inside a subject.
