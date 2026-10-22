@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'services/store.dart';
+import 'services/cloud.dart';
 
 /// One live/recorded class inside a topic.
 /// [youtube] is optional: if set, the class plays from YouTube instead of the
@@ -255,6 +256,16 @@ class AppState extends ChangeNotifier {
 
   void buy(Course c) {
     purchased.add(c.id);
+    Store.savePurchased(purchased);
+    Cloud.addPurchase(c.id); // so it comes back on any phone
+    notifyListeners();
+  }
+
+  /// Replaces the purchase list (used when restoring an account from the cloud).
+  void setPurchased(Set<String> ids) {
+    purchased
+      ..clear()
+      ..addAll(ids);
     Store.savePurchased(purchased);
     notifyListeners();
   }

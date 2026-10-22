@@ -7,6 +7,7 @@ import 'more.dart';
 import 'library.dart';
 import 'services/store.dart';
 import 'services/notify.dart';
+import 'services/cloud.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +16,10 @@ Future<void> main() async {
   try {
     await Store.init();
     AppState.i.hydrate();
+  } catch (_) {}
+  // Cloud account (phone OTP + saved courses). Fails quietly if offline.
+  try {
+    await Cloud.init();
   } catch (_) {}
   runApp(const ClcApp());
 }
@@ -96,8 +101,9 @@ class _AuthState extends State<AuthScreen> {
   final _otp = TextEditingController();
   bool _otpSent = false;
   bool _busy = false;
+  bool _cloud = false; // true when the OTP really went out through Supabase
 
-  // Demo OTP — a real OTP needs an SMS gateway (see the note in the app).
+  // Used only while the cloud OTP is not available yet.
   static const _demoOtp = '123456';
 
   @override
@@ -107,34 +113,68 @@ class _AuthState extends State<AuthScreen> {
     super.dispose();
   }
 
-  void _sendOtp() {
-    if (!RegExp(r'^[6-9]\d{9}$').hasMatch(_phone.text.trim())) {
+  Future<void> _sendOtp() async {
+    final num = _phone.text.trim();
+    if (!RegExp(r'^[6-9]\d{9}$').hasMatch(num)) {
       snack(context, 'Enter a valid 10-digit mobile number.');
       return;
     }
     FocusScope.of(context).unfocus();
-    setState(() => _otpSent = true);
-    snack(context, 'Demo OTP sent: $_demoOtp');
+    setState(() => _busy = true);
+    String? err;
+    if (Cloud.ready) err = await Cloud.sendOtp('+91$num');
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _otpSent = true;
+      _cloud = Cloud.ready && err == null;
+    });
+    snack(context, _cloud ? 'OTP sent to +91$num' : 'Demo OTP: $_demoOtp');
   }
 
   Future<void> _verify() async {
-    if (_otp.text.trim() != _demoOtp) {
-      snack(context, 'Incorrect OTP. In this demo use $_demoOtp.');
+    final num = _phone.text.trim();
+    setState(() => _busy = true);
+    String? err;
+    if (_cloud) {
+      err = await Cloud.verifyOtp('+91$num', _otp.text.trim());
+      if (err != null) {
+        if (!mounted) return;
+        setState(() => _busy = false);
+        snack(context, err);
+        return;
+      }
+    } else if (_otp.text.trim() != _demoOtp) {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      snack(context, 'Incorrect OTP. Use $_demoOtp in this demo.');
       return;
     }
-    setState(() => _busy = true);
-    AppState.i.setPhone(_phone.text.trim());
+
+    AppState.i.setPhone(num);
     await Store.setLoggedIn(true);
-    await Future.delayed(const Duration(milliseconds: 400));
-    if (!mounted) return;
-    // Existing account on this phone -> straight to Home with saved data.
-    // New account -> ask name and class first.
-    if (Store.hasProfile) {
+
+    // Already registered? Restore the account and skip the name step.
+    if (_cloud) {
+      final p = await Cloud.myProfile();
+      final name = (p?['name'] as String?) ?? '';
+      if (name.isNotEmpty) {
+        AppState.i.setProfile(name, (p?['class'] as String?) ?? '');
+        AppState.i.setPurchased(await Cloud.myPurchases());
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const Shell()));
+        return;
+      }
+    } else if (Store.hasProfile) {
+      if (!mounted) return;
       Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const Shell()));
-    } else {
-      Navigator.of(context)
-          .pushReplacement(MaterialPageRoute(builder: (_) => const ProfileSetupScreen()));
+      return;
     }
+
+    // New account -> ask name and class once.
+    if (!mounted) return;
+    Navigator.of(context)
+        .pushReplacement(MaterialPageRoute(builder: (_) => const ProfileSetupScreen()));
   }
 
   @override
@@ -238,6 +278,7 @@ class _ProfileSetupState extends State<ProfileSetupScreen> {
       return;
     }
     AppState.i.setProfile(name, _cls);
+    Cloud.saveProfile(name, _cls); // saved to the account, so it comes back
     Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const Shell()));
   }
 

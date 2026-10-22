@@ -5,6 +5,7 @@ import 'data.dart';
 import 'widgets.dart';
 import 'library.dart';
 import 'services/payment.dart';
+import 'services/downloads.dart';
 
 // ───────── My Courses ─────────
 class CoursesScreen extends StatefulWidget {
@@ -503,6 +504,35 @@ class _ClassPlayerState extends State<ClassPlayerScreen> {
                 label: Text(done ? 'Completed' : 'Mark as complete'),
               ),
             ),
+            const SizedBox(height: 10),
+            if (_isYoutube)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                    color: kOrange.withOpacity(.15), borderRadius: BorderRadius.circular(12)),
+                child: const Row(children: [
+                  Icon(Icons.wifi, color: Color(0xFF9A5B00)),
+                  SizedBox(width: 10),
+                  Expanded(
+                      child: Text(
+                          'This class plays from YouTube — it needs internet and cannot be saved offline.',
+                          style: TextStyle(
+                              fontSize: 12, color: Color(0xFF9A5B00), height: 1.3))),
+                ]),
+              )
+            else
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    await Downloads.saveOne('video_demo', sampleVideo);
+                    AppState.i.markDownloaded('video_demo', true);
+                    if (context.mounted) snack(context, 'Saved for offline watching.');
+                  },
+                  icon: const Icon(Icons.download),
+                  label: const Text('Save offline'),
+                ),
+              ),
             const SectionTitle('Practice'),
             Container(
               padding: const EdgeInsets.all(14),

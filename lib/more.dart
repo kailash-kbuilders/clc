@@ -4,6 +4,7 @@ import 'widgets.dart';
 import 'main.dart' show AuthScreen;
 import 'services/store.dart';
 import 'services/notify.dart';
+import 'services/cloud.dart';
 
 // ───────── Study material ─────────
 class StudyScreen extends StatefulWidget {
@@ -219,6 +220,7 @@ class ProfileScreen extends StatelessWidget {
             style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
             onPressed: () {
               Store.setLoggedIn(false);
+              Cloud.signOut();
               Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (_) => const AuthScreen()), (r) => false);
             },
