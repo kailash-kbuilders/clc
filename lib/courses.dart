@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'data.dart';
 import 'widgets.dart';
 import 'library.dart';
+import 'motion.dart';
 import 'services/payment.dart';
 import 'services/downloads.dart';
 
@@ -427,6 +429,20 @@ class _ClassPlayerState extends State<ClassPlayerScreen> {
     _vc?.setPlaybackSpeed(s);
   }
 
+  /// Opens the class video full screen in landscape.
+  Future<void> _openFullscreen() async {
+    if (_vc == null) return;
+    await SystemChrome.setPreferredOrientations(
+        [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+    if (!mounted) return;
+    await Navigator.of(context).push(appRoute(_FullscreenVideo(vc: _vc!, title: widget.item.title)));
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  }
+
   bool _saving = false;
 
   Future<void> _saveOffline() async {
@@ -469,6 +485,8 @@ class _ClassPlayerState extends State<ClassPlayerScreen> {
                     ? YoutubePlayer(
                         controller: _yt!,
                         aspectRatio: 16 / 9,
+                        autoFullScreen: true,
+                        enableFullScreenOnVerticalDrag: true,
                       )
                     : AspectRatio(
                         aspectRatio: (_ready && _vc != null) ? _vc!.value.aspectRatio : 16 / 9,
@@ -504,19 +522,27 @@ class _ClassPlayerState extends State<ClassPlayerScreen> {
                   Text(_fmt(v.duration), style: mS),
                 ]),
               ),
-              Row(children: [
-                const Text('Speed', style: mS),
-                const SizedBox(width: 10),
-                for (final s in [0.5, 1.0, 1.5, 2.0])
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text('${s}x'),
-                      selected: _speed == s,
-                      onSelected: (_) => _setSpeed(s),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(children: [
+                  const Text('Speed', style: mS),
+                  const SizedBox(width: 10),
+                  for (final s in [0.5, 1.0, 1.5, 2.0])
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        label: Text('${s}x'),
+                        selected: _speed == s,
+                        onSelected: (_) => _setSpeed(s),
+                      ),
                     ),
-                  ),
-              ]),
+                  const SizedBox(width: 6),
+                  TextButton.icon(
+                      onPressed: _openFullscreen,
+                      icon: const Icon(Icons.fullscreen, size: 18),
+                      label: const Text('Full screen')),
+                ]),
+              ),
             ],
             const SizedBox(height: 16),
             Text(k.title,
@@ -593,6 +619,45 @@ class _ClassPlayerState extends State<ClassPlayerScreen> {
               child: const Icon(Icons.play_circle_fill, size: 72, color: Colors.white),
             ),
           ),
+        ),
+      );
+}
+
+/// Full-screen landscape playback for a class video.
+class _FullscreenVideo extends StatelessWidget {
+  final VideoPlayerController vc;
+  final String title;
+  const _FullscreenVideo({required this.vc, required this.title});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: Colors.black,
+        body: SafeArea(
+          child: Stack(children: [
+            Center(
+              child: AspectRatio(
+                aspectRatio: vc.value.aspectRatio,
+                child: VideoPlayer(vc),
+              ),
+            ),
+            Positioned(
+                top: 6,
+                left: 6,
+                child: IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close, color: Colors.white))),
+            Positioned(
+                left: 12,
+                right: 12,
+                bottom: 14,
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text(title, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                  const SizedBox(height: 6),
+                  VideoProgressIndicator(vc,
+                      allowScrubbing: true,
+                      colors: const VideoProgressColors(playedColor: kOrange)),
+                ])),
+          ]),
         ),
       );
 }

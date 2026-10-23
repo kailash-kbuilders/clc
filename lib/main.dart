@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'data.dart';
+import 'motion.dart';
 import 'widgets.dart';
 import 'courses.dart';
 import 'tests.dart';
@@ -11,6 +13,12 @@ import 'services/cloud.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Allow landscape so videos can go full screen.
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
   // Local storage first, so saved progress/settings are ready before the UI.
   // Wrapped so a storage problem can never stop the app from launching.
   try {
@@ -442,14 +450,17 @@ class HomeScreen extends StatelessWidget {
       ),
 
       // ── Quick actions, up front like PW ──
-      QuickActions(items: [
-        QuickAction(Icons.school, 'My Courses', kNavy, () => go(1)),
-        QuickAction(Icons.quiz, 'Online Tests', const Color(0xFFE65100), () => go(2)),
-        QuickAction(Icons.download, 'Downloads', kGreen, () => push(context, const DownloadsScreen())),
-        QuickAction(Icons.help_outline, 'Ask a Question', const Color(0xFF00838F), () => push(context, const AskScreen())),
-      ]),
+      AnimatedIn(
+        index: 1,
+        child: QuickActions(items: [
+          QuickAction(Icons.school, 'My Courses', kNavy, () => go(1)),
+          QuickAction(Icons.quiz, 'Online Tests', const Color(0xFFE65100), () => go(2)),
+          QuickAction(Icons.download, 'Downloads', kGreen, () => push(context, const DownloadsScreen())),
+          QuickAction(Icons.help_outline, 'Ask a Question', const Color(0xFF00838F), () => push(context, const AskScreen())),
+        ]),
+      ),
 
-      BannerCarousel(items: banners, onCta: go),
+      AnimatedIn(index: 2, child: BannerCarousel(items: banners, onCta: go)),
 
       // Continue learning
       const SectionTitle('Continue Learning'),

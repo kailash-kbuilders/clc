@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'data.dart';
+import 'motion.dart';
 
 const kNavy = Color(0xFF14196B);
 const kOrange = Color(0xFFF5A623);
@@ -42,8 +43,7 @@ BoxDecoration cardDeco([Color c = Colors.white]) => BoxDecoration(
     borderRadius: BorderRadius.circular(18),
     boxShadow: const [BoxShadow(color: Color(0x14141B4B), blurRadius: 14, offset: Offset(0, 5))]);
 
-void push(BuildContext c, Widget w) =>
-    Navigator.of(c).push(MaterialPageRoute(builder: (_) => w));
+void push(BuildContext c, Widget w) => Navigator.of(c).push(appRoute(w));
 
 void snack(BuildContext c, String m) {
   ScaffoldMessenger.of(c)
